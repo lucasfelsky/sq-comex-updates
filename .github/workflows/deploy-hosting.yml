@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'   # <-- ALTERADO para Node 20 (necessário para firebase-tools v15+)
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -25,11 +25,10 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy to Firebase Hosting (preview channel)
+      - name: Deploy to Firebase Hosting (LIVE)
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-            repoToken: "${{ secrets.GITHUB_TOKEN }}"
-            firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
-            projectId: "${{ secrets.FIREBASE_PROJECT_ID }}"
-            channelId: "preview-${{ github.run_id }}"   # <- OBRIGATÓRIO para preview (ex: preview-123456789)
-            expires: "7d"
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          projectId: "${{ secrets.FIREBASE_PROJECT_ID }}"
+          # canal LIVE = não colocar channelId
