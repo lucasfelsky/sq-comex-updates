@@ -1,11 +1,19 @@
+// src/components/ProtectedRoute.jsx
 import React, { useContext } from 'react'
-import { AuthContext } from '../contexts/AuthContext'
 import { Navigate } from 'react-router-dom'
+import { AuthContext } from '../contexts/AuthContext'
 
 export default function ProtectedRoute({ children }) {
-  const { user, loading } = useContext(AuthContext)
-  if (loading) return <div>Carregando...</div>
+  const { user } = useContext(AuthContext)
+
+  // 1) usuário não logado → manda para login
   if (!user) return <Navigate to="/login" replace />
-  if (!user.emailVerified) return <Navigate to="/verify-email" replace />
+
+  // 2) usuário logado, mas NÃO verificado → só deixa ir para /verify-email
+  if (!user.emailVerified) {
+    return <Navigate to="/verify-email" replace />
+  }
+
+  // 3) usuário logado + email verificado → OK
   return children
 }

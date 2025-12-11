@@ -1,5 +1,204 @@
+/* src/styles.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
+/* design tokens */
+:root{
+  --radius-card: 14px;
+  --ui-shadow: 0 8px 30px rgba(12,24,48,0.08);
+  --bg-page: #F8FAFC;       /* close to tailwind gray-50 */
+  --text-default: #0f172a;  /* dark slate */
+  --card-bg: #ffffff;
+  --primary-500: #5065f0;
+  --primary-600: #3e4fd1;
+  --success: #16a34a;
+  --danger: #ef4444;
+  --warn: #f59e0b;
+}
+
+/* global */
+html, body, #root {
+  height: 100%;
+}
+body {
+  background: var(--bg-page);
+  color: var(--text-default);
+  font-family: ui, Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+}
+
+/* card helper */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--ui-shadow);
+  padding: 1rem; /* 16px */
+}
+
+/* simple button classes (fallback so we don't rely on @apply) */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--primary-500);
+  color: white;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: transform .08s ease, background-color .12s ease;
+}
+.btn-primary:active { transform: scale(.99); }
+.btn-primary[disabled] { opacity: .6; cursor: not-allowed }
+
+/* input fallback */
+.input {
+  width: 100%;
+  padding: .5rem .625rem;
+  border: 1px solid #e6e9ee;
+  background: #fff;
+  border-radius: .375rem;
+  outline: none;
+}
+
+/* header active helper (used in Header.jsx nav) */
+.header-link-active {
+  color: var(--primary-600);
+  font-weight: 600;
+  background-color: #eef2ff;
+  padding: .375rem .75rem;
+  border-radius: .5rem;
+}
+
+/* small helpers */
+.text-muted { color: #6b7280; }
+.small { font-size: 0.875rem; }
+.container-max { max-width: 1120px; margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; }
+
+/* fundo total */
+.bg-login {
+    @apply w-full h-screen bg-cover bg-center bg-no-repeat;
+  }
+  
+  /* remove scroll */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* root full-screen control for login page */
+    html, body, #root {
+    height: 100%;
+  }
+  
+  /* container that holds everything */
+  .login-root {
+    min-height: 100vh;
+    min-width: 100vw;
+    position: relative;
+    overflow: hidden;
+    background: #0f172a; /* fallback */
+  }
+  
+  /* background image full cover (public/assets/fundo_sqquimica.png) */
+  .login-bg {
+    position: absolute;
+    inset: 0;
+    background-image: url('/assets/fundo_sqquimica.png');
+    background-size: cover; /* não recorta mais nada */
+    background-position: center bottom; /* gruda na parte inferior */
+    background-repeat: no-repeat;
+    background-color: #0f172a; /* cor de fundo ao redor */
+    z-index: 0;
+  }
+  
+  /* center wrapper */
+  .login-center {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    box-sizing: border-box;
+  }
+  
+  /* card */
+  .login-card {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255,255,255,0.92); /* 92% opacity white */
+    border-radius: 14px;
+    padding: 32px;
+    box-shadow: 0 14px 40px rgba(8,20,40,0.12);
+    border: 1px solid rgba(15,23,42,0.04);
+  }
+  
+  /* brand area */
+  .login-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  
+  /* inputs (styled to look modern) */
+  .input-login {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(15,23,42,0.08);
+    background: #ffffff;
+    box-shadow: inset 0 1px 0 rgba(16,24,40,0.02);
+    font-size: 14px;
+    outline: none;
+    transition: box-shadow .12s ease, border-color .12s ease;
+  }
+  .input-login:focus {
+    border-color: rgba(80,101,240,0.9);
+    box-shadow: 0 6px 20px rgba(80,101,240,0.08);
+  }
+  
+  /* main CTA */
+  .btn-login {
+    background: #0f172a;
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    letter-spacing: .6px;
+    box-shadow: 0 8px 18px rgba(15,23,42,0.08);
+    transition: transform .06s ease, background .12s ease;
+  }
+  .btn-login:hover { transform: translateY(-1px); background: #0b1320; }
+  .btn-login:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+  
+  /* small screens adjust */
+  @media (max-width: 520px) {
+    .login-card { padding: 20px; border-radius: 12px; margin: 0 8px; }
+  }
+  
+  /* ensure no scrollbars appear on page */
+  body { margin: 0; }
+
+  .spinner-small {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(15,23,42,0.12);
+    border-top-color: #0f172a;
+    animation: spin 0.8s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }

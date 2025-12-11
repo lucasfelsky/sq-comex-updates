@@ -5,17 +5,17 @@ import BarStatusCard from '../components/BarStatusCard'
 export default function Dashboard() {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-      {/* mostra o card com a condição da barra (reutiliza o componente já criado) */}
-      <BarStatusCard />
+      <div className="grid grid-cols-1 gap-6">
+        <BarStatusCard />
 
-      <div className="mt-6 p-4 bg-white rounded shadow">
-        <h2 className="text-lg font-semibold">Resumo rápido</h2>
-        <p className="text-sm text-gray-600 mt-2">
-          Aqui você pode adicionar métricas, alerts, gráficos ou links rápidos para os processos.
-          Por enquanto esta é uma tela inicial simples — personalizar conforme necessidade.
-        </p>
+        <div className="card">
+          <h2 className="text-lg font-semibold">Resumo rápido</h2>
+          <p className="text-sm text-muted mt-2">
+            Links rápidos e estatísticas podem ficar aqui. Ex.: número de processos abertos, alertas de vencimento, etc.
+          </p>
+        </div>
       </div>
     </div>
   )
