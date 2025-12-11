@@ -1,12 +1,11 @@
 // src/pages/Home.jsx
 import React, { useEffect, useState } from 'react'
 import { db } from '../firebase'
-import { doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore'
-import useAuth from '../hooks/useAuth' // robusto: importa o default hook
+import { doc, getDoc, updateDoc, setDoc, collection, getDocs } from 'firebase/firestore'
+import useAuth from '../hooks/useAuth'
 
 export default function Home() {
   const auth = useAuth() || {}
-  // compute role robustly (supports multiple shapes)
   const role = auth.role || auth.userProfile?.role || null
 
   const [annText, setAnnText] = useState('')
@@ -32,7 +31,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ANNOUNCEMENTS
+  // === ANNOUNCEMENTS ===
   const loadAnnouncements = async () => {
     try {
       setAnnError(null)
@@ -49,16 +48,33 @@ export default function Home() {
     }
   }
 
+  // Save: atualiza se existe, caso contrário cria com setDoc(..., {merge:true})
   const saveAnnouncements = async () => {
     try {
-      await updateDoc(doc(db, 'announcements', 'home'), { text: annText })
+      // verificação simples de permissão no front (UI) — a regra real é no Firestore
+      if (!(role === 'admin' || role === 'comex')) {
+        alert('Apenas administradores/comex podem editar avisos.')
+        return
+      }
+
+      const ref = doc(db, 'announcements', 'home')
+      const snap = await getDoc(ref)
+      if (snap.exists()) {
+        await updateDoc(ref, { text: annText, updatedAt: new Date() })
+        console.log('saveAnnouncements: updated existing doc')
+      } else {
+        // cria o doc caso não exista (merge: true caso queira preservar outros campos)
+        await setDoc(ref, { text: annText, createdAt: new Date(), updatedAt: new Date() }, { merge: true })
+        console.log('saveAnnouncements: created doc via setDoc')
+      }
+
       setEditing(false)
-      // optimistic reload
+      // recarrega para garantir consistência
       await loadAnnouncements()
     } catch (err) {
       console.error('saveAnnouncements error', err)
-      // user-friendly message
-      if (err?.code === 'permission-denied') {
+      // trata permission-denied separadamente
+      if (err?.code === 'permission-denied' || /permission/i.test(String(err))) {
         alert('Você não tem permissão para editar os avisos. Apenas administradores/comex podem editar.')
       } else {
         alert('Erro ao salvar aviso: ' + (err?.message || String(err)))
@@ -66,13 +82,19 @@ export default function Home() {
     }
   }
 
-  // BARRA
+  // === BARRA ===
   const loadBarra = async () => {
     try {
       setBarraError(null)
+      // lê /barra/status (se for barStatus, as regras já aceitam ambos)
       const snap = await getDoc(doc(db, 'barra', 'status'))
       if (snap.exists()) setBarra(snap.data())
-      else setBarra(null)
+      else {
+        // fallback: tentar /barStatus/status
+        const snap2 = await getDoc(doc(db, 'barStatus', 'status'))
+        if (snap2.exists()) setBarra(snap2.data())
+        else setBarra(null)
+      }
     } catch (err) {
       console.error('loadBarra error', err)
       setBarraError(err)
@@ -80,7 +102,7 @@ export default function Home() {
     }
   }
 
-  // PROCESSES (upcoming 15 days) - safe parsing
+  // === PROCESSES PRÓXIMOS ===
   const loadUpcomingProcesses = async () => {
     try {
       setProcessesError(null)
@@ -91,16 +113,13 @@ export default function Home() {
       const prox = []
       col.forEach(d => {
         const p = d.data()
-        // try common fields
         const rawEta = p.eta ?? p.eta_original ?? p.etaDate ?? null
         if (!rawEta) return
         let etaDate = null
         try {
-          // Firestore Timestamp has toDate
           if (rawEta && typeof rawEta.toDate === 'function') {
             etaDate = rawEta.toDate()
           } else {
-            // if ISO string or number
             etaDate = new Date(rawEta)
             if (isNaN(etaDate)) etaDate = null
           }
@@ -111,7 +130,6 @@ export default function Home() {
         if (etaDate >= now && etaDate <= limit) prox.push({ id: d.id, ...p, __etaDate: etaDate })
       })
 
-      // sort by eta
       prox.sort((a, b) => a.__etaDate - b.__etaDate)
       setProcesses(prox)
     } catch (err) {
