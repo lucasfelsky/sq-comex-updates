@@ -1,69 +1,121 @@
 // src/contexts/AuthContext.jsx
-import React, { createContext, useEffect, useState } from 'react'
-import { onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import { auth, db } from '../firebase'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import {
+  onAuthStateChanged,
+  signOut,
+  reload
+} from 'firebase/auth'
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  setDoc,
+  serverTimestamp
+} from 'firebase/firestore'
 
 export const AuthContext = createContext()
 
-// Remember-me global preference (applied at login time by Login.jsx)
-let globalRemember = false
-export function setRememberMe(value) {
-  globalRemember = !!value
-}
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null) // firebase user
-  const [userProfile, setUserProfile] = useState(null) // firestore users/{uid}
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [role, setRole] = useState(null)
+  const [name, setName] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoaded, setProfileLoaded] = useState(false)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        await u.reload() // <– força atualização do estado do Firebase
+    // Observa mudanças de autenticação
+    const unsub = onAuthStateChanged(auth, async (usr) => {
+      setUser(usr)
+      setProfileLoaded(false)
+
+      if (!usr) {
+        // reset state
+        setRole(null)
+        setName(null)
+        setLoading(false)
+        return
       }
-      setUser(u)
+
+      // garantir que o objeto user está atualizado (emailVerified, etc)
+      try {
+        await reload(usr)
+      } catch {}
+
+      // Carregar dados do Firestore
+      await loadUserProfile(usr.uid)
+
       setLoading(false)
-
-      // If logged, ensure users/{uid} doc exists and load it into userProfile
-      if (u) {
-        try {
-          const uref = doc(db, 'users', u.uid)
-          const snap = await getDoc(uref)
-          if (!snap.exists()) {
-            // create default profile
-            await setDoc(uref, {
-              uid: u.uid,
-              email: u.email || null,
-              role: 'user',
-              name: u.displayName || null,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            })
-            setUserProfile({ uid: u.uid, email: u.email, role: 'user', name: u.displayName || null })
-          } else {
-            setUserProfile(snap.data())
-          }
-
-          if (u.emailVerified) {
-            try {
-              await setDoc(uref, { emailVerified: true, updatedAt: serverTimestamp() }, { merge: true })
-            } catch(e) { console.error('err update users emailVerified', e) }
-          }
-        } catch (e) {
-          console.error('Erro ao garantir users/{uid}:', e)
-        }
-      } else {
-        setUserProfile(null)
-      }
     })
 
-    return () => unsub()
+    return unsub
   }, [])
 
+  /**
+   * Carrega documento users/{uid} e configura listener real-time
+   */
+  const loadUserProfile = async (uid) => {
+    const ref = doc(db, 'users', uid)
+
+    // caso o documento não exista, cria automaticamente (usuário novo)
+    let snap = await getDoc(ref)
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        uid,
+        email: auth.currentUser?.email || null,
+        name: auth.currentUser?.displayName || null,
+        role: 'user',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+      snap = await getDoc(ref)
+    }
+
+    // carregar primeira vez
+    const data = snap.data()
+    setName(data.name || auth.currentUser?.displayName || auth.currentUser?.email)
+    setRole(data.role || 'user')
+    setProfileLoaded(true)
+
+    // listener realtime (admin pode mudar role no painel e atualizar automaticamente no cliente)
+    return onSnapshot(ref, (ds) => {
+      const d = ds.data()
+      setName(d?.name || null)
+      setRole(d?.role || null)
+    })
+  }
+
+  /**
+   * Força reload manual do user auth + profile
+   */
+  const refreshUser = async () => {
+    if (auth.currentUser) {
+      await reload(auth.currentUser)
+      await loadUserProfile(auth.currentUser.uid)
+    }
+  }
+
+  /**
+   * Logout global
+   */
+  const logout = async () => {
+    await signOut(auth)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, userProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        role,
+        name,
+        loading: loading || !profileLoaded,
+        refreshUser,
+        logout
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
 }
+
+export const useAuthContext = () => useContext(AuthContext)

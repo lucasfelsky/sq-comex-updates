@@ -1,19 +1,35 @@
 // src/components/ProtectedRoute.jsx
-import React, { useContext } from 'react'
+import React from 'react'
 import { Navigate } from 'react-router-dom'
-import { AuthContext } from '../contexts/AuthContext'
+import useAuth from '../hooks/useAuth'
 
 export default function ProtectedRoute({ children }) {
-  const { user } = useContext(AuthContext)
+  const { user, loading } = useAuth() || {}
 
-  // 1) usuário não logado → manda para login
-  if (!user) return <Navigate to="/login" replace />
+  // Full-screen blurred loading with fade
+  if (loading) {
+    return (
+      <div className="auth-loading-root">
+        <div className="auth-loading-backdrop" />
 
-  // 2) usuário logado, mas NÃO verificado → só deixa ir para /verify-email
-  if (!user.emailVerified) {
-    return <Navigate to="/verify-email" replace />
+        <div className="auth-loading-panel">
+          <div className="relative flex flex-col items-center gap-4">
+            {/* iOS-like spinner (two-layer for nicer look) */}
+            <div className="relative w-14 h-14">
+              <div className="absolute inset-0 rounded-full border-4 border-gray-200" />
+              <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin-smooth" />
+            </div>
+
+            <span className="text-gray-100 text-sm tracking-wide">Carregando...</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  // 3) usuário logado + email verificado → OK
+  if (!user) return <Navigate to="/login" replace />
+
+  if (!user.emailVerified) return <Navigate to="/verify-email" replace />
+
   return children
 }
